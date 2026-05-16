@@ -1,0 +1,8 @@
+interface:
+  display_name: "去 AI 味"
+  short_description: "清理网文中的 AI 写作痕迹"
+  brand_color: "#2F6F5E"
+  default_prompt: "Use $story-deslop to make this Chinese web novel prose feel natural."
+
+policy:
+  allow_implicit_invocation: true

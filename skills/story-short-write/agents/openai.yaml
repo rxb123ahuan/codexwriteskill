@@ -1,0 +1,8 @@
+interface:
+  display_name: "短篇网文写作"
+  short_description: "短篇故事构思、成稿与精修"
+  brand_color: "#2F6F5E"
+  default_prompt: "Use $story-short-write to draft a short Chinese web novel story."
+
+policy:
+  allow_implicit_invocation: true

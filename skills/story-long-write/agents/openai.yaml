@@ -1,0 +1,8 @@
+interface:
+  display_name: "长篇网文写作"
+  short_description: "长篇网文开书、大纲、续写与修订"
+  brand_color: "#2F6F5E"
+  default_prompt: "Use $story-long-write to help me plan and write a long Chinese web novel."
+
+policy:
+  allow_implicit_invocation: true

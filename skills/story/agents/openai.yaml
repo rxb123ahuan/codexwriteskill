@@ -1,0 +1,8 @@
+interface:
+  display_name: "网文工具箱"
+  short_description: "中文网文写作工具箱入口"
+  brand_color: "#2F6F5E"
+  default_prompt: "Use $story to route my Chinese web novel task."
+
+policy:
+  allow_implicit_invocation: true

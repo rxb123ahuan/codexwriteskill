@@ -1,0 +1,8 @@
+interface:
+  display_name: "写作环境部署"
+  short_description: "部署网文项目结构和写作规则"
+  brand_color: "#2F6F5E"
+  default_prompt: "Use $story-setup to initialize a Chinese web novel writing project."
+
+policy:
+  allow_implicit_invocation: true

@@ -1,0 +1,8 @@
+interface:
+  display_name: "浏览器 CDP"
+  short_description: "通过 Chrome CDP 辅助采集网页数据"
+  brand_color: "#2F6F5E"
+  default_prompt: "Use $browser-cdp to help collect web data through Chrome CDP."
+
+policy:
+  allow_implicit_invocation: true
