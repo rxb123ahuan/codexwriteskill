@@ -47,7 +47,7 @@ This skill was adapted from a Claude/OpenClaw skill set for Codex. Do not deploy
 - 写入或更新以下文件：
   - `story-format.md`：正文格式、章名、段落长度、文件命名
   - `story-outline.md`：大纲/细纲要求
-  - `story-consistency.md`：设定、伏笔、时间线一致性要求
+  - `story-consistency.md`：设定、伏笔、时间线、信息权限一致性要求
   - `story-narrative.md`：网文节奏、钩子、爽点、去AI味规则
 
 ### 2.3 创建/补齐小说目录
@@ -66,7 +66,7 @@ This skill was adapted from a Claude/OpenClaw skill set for Codex. Do not deploy
 
 ### 2.4 部署追踪模板
 - 如 `{书名}/追踪/上下文.md` 不存在，按 `references/templates/上下文.md.tmpl` 初始化
-- 如 `伏笔.md`、`时间线.md` 不存在，创建空表骨架
+- 如 `伏笔.md`、`时间线.md`、`信息权限.md` 不存在，创建空表骨架
 - 不覆盖用户已有追踪内容
 
 ### 2.5 创建部署标记
@@ -84,7 +84,7 @@ This skill was adapted from a Claude/OpenClaw skill set for Codex. Do not deploy
 
 1. 验证 `STORY.md` 存在
 2. 验证 `.codex-story/rules/` 下规则文件存在
-3. 验证书名目录和 `追踪/上下文.md` 存在
+3. 验证书名目录和 `追踪/上下文.md`、`追踪/信息权限.md` 存在
 4. 验证部署标记：
    - 检查 `.story-deployed` 是否存在且包含时间戳
 5. 输出安装报告：
@@ -128,4 +128,5 @@ This skill was adapted from a Claude/OpenClaw skill set for Codex. Do not deploy
 |------|------|
 | references/templates/rules/ | 可复用的写作规则文本（复制到 `.codex-story/rules/`） |
 | references/templates/上下文.md.tmpl | 写作上下文模板 |
+| references/templates/信息权限.md.tmpl | 秘密/金手指/隐藏身份知情边界模板 |
 
