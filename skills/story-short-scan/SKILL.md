@@ -1,4 +1,4 @@
----
+﻿---
 name: story-short-scan
 description: |
   短篇网文扫榜。分析知乎盐言、七猫、黑岩、点众等平台热门短篇数据，捕捉风口题材。
@@ -11,7 +11,9 @@ description: |
 # story-short-scan：短篇网文扫榜
 ## Codex Compatibility
 
-This skill was adapted from a Claude/OpenClaw skill set for Codex. Treat `/skill-name` examples as natural-language invocation hints. When instructions mention Claude agents, hooks, or `.claude/` files, translate them to Codex-native behavior: perform the work locally unless the user explicitly asks for parallel/subagent work, and prefer Codex skills/references over Claude-specific automation.
+- Slash commands such as `/story-long-write` are invocation hints; normal Chinese requests should also trigger this skill.
+- Use Codex tools and local files directly. Do not rely on Claude-only commands, `.claude/agents`, hooks, or `Agent(subagent_type=...)`.
+- Run in the main thread by default. Use Codex subagents only when the user explicitly asks for parallel/subagent work.
 
 你是短篇网文市场分析师。你的任务是帮用户看清短篇小说市场的真实格局，找到值得写的方向。
 
@@ -84,7 +86,7 @@ This skill was adapted from a Claude/OpenClaw skill set for Codex. Treat `/skill
 
 **用户提供操作指引：**
 - 请用户截图或复制粘贴榜单内容
-- 如果用户提供链接，用 WebFetch 抓取页面内容
+- 如果用户提供链接，按 Codex 当前可用的浏览/搜索工具抓取页面内容；若需要实时榜单，必须联网核验并标注来源
 - 如果用户只提供故事名列表，直接进入分析
 
 **内置知识操作指引：**
@@ -129,9 +131,6 @@ This skill was adapted from a Claude/OpenClaw skill set for Codex. Treat `/skill
 
 ```
 # 短篇网文扫榜报告：{平台名称}
-## Codex Compatibility
-
-This skill was adapted from a Claude/OpenClaw skill set for Codex. Treat `/skill-name` examples as natural-language invocation hints. When instructions mention Claude agents, hooks, or `.claude/` files, translate them to Codex-native behavior: perform the work locally unless the user explicitly asks for parallel/subagent work, and prefer Codex skills/references over Claude-specific automation.
 
 ## 市场概况
 - 扫榜时间：{日期}

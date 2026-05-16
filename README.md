@@ -3,7 +3,13 @@
 Codex adaptation of the Chinese web-novel writing skill set from
 [`worldwonderer/oh-story-claudecode`](https://github.com/worldwonderer/oh-story-claudecode).
 
-This repository keeps the original multi-skill structure and adjusts the skill metadata so Codex can discover and install each skill from GitHub.
+This repository keeps the original multi-skill structure and adapts the workflows for Codex:
+
+- Slash commands are treated as natural-language invocation hints.
+- Story skills run in the main Codex thread by default.
+- Codex subagents are used only when the user explicitly asks for parallel/subagent work.
+- `story-setup` creates Codex-readable `STORY.md`, `.codex-story/rules/`, and tracking files instead of Claude Code hooks/agents.
+- `story-cover` prefers Codex image generation tools instead of requiring a separate image API key.
 
 ## Skills
 

@@ -1,4 +1,4 @@
----
+﻿---
 name: browser-cdp
 description: "Use this skill when you need to control a Chrome browser via CDP (Chrome DevTools Protocol) to reuse existing login sessions. Covers: launching Chrome in debug mode, opening URLs, waiting for page load, evaluating JavaScript, taking snapshots, and extracting auth tokens. Trigger phrases: browser automation, CDP, agent-browser, 浏览器操作, 操作浏览器, Chrome CDP, 复用登录态, extract token from browser."
 ---
@@ -6,7 +6,9 @@ description: "Use this skill when you need to control a Chrome browser via CDP (
 # Browser CDP 操作工具
 ## Codex Compatibility
 
-This skill was adapted from a Claude/OpenClaw skill set for Codex. Treat `/skill-name` examples as natural-language invocation hints. When instructions mention Claude agents, hooks, or `.claude/` files, translate them to Codex-native behavior: perform the work locally unless the user explicitly asks for parallel/subagent work, and prefer Codex skills/references over Claude-specific automation.
+- Slash commands such as `/story-long-write` are invocation hints; normal Chinese requests should also trigger this skill.
+- Use Codex tools and local files directly. Do not rely on Claude-only commands, `.claude/agents`, hooks, or `Agent(subagent_type=...)`.
+- Run in the main thread by default. Use Codex subagents only when the user explicitly asks for parallel/subagent work.
 
 通过 CDP 协议控制 Chrome，复用已有登录态，执行浏览器自动化操作。
 
@@ -47,9 +49,6 @@ agent-browser --cdp 9222 eval 'document.body.innerText.substring(0, 8000)'
 
 ```bash
 # 从 localStorage 或 cookie 提取
-## Codex Compatibility
-
-This skill was adapted from a Claude/OpenClaw skill set for Codex. Treat `/skill-name` examples as natural-language invocation hints. When instructions mention Claude agents, hooks, or `.claude/` files, translate them to Codex-native behavior: perform the work locally unless the user explicitly asks for parallel/subagent work, and prefer Codex skills/references over Claude-specific automation.
 agent-browser --cdp 9222 eval 'localStorage.getItem("token") || document.cookie'
 ```
 
@@ -57,9 +56,6 @@ agent-browser --cdp 9222 eval 'localStorage.getItem("token") || document.cookie'
 
 ```bash
 # 查找页面元素（用于登录按钮等交互）
-## Codex Compatibility
-
-This skill was adapted from a Claude/OpenClaw skill set for Codex. Treat `/skill-name` examples as natural-language invocation hints. When instructions mention Claude agents, hooks, or `.claude/` files, translate them to Codex-native behavior: perform the work locally unless the user explicitly asks for parallel/subagent work, and prefer Codex skills/references over Claude-specific automation.
 agent-browser --cdp 9222 snapshot -i
 ```
 

@@ -1,19 +1,19 @@
----
+﻿---
 name: story-review
 description: |
-  多视角对抗式审查。4 个 Agent 并行 spawn（full 模式），各自从不同角度找问题，主线程综合裁决。
+  网络小说审查。按故事架构、角色对话、文字质感、一致性四个视角找问题；Codex 默认主线程执行，用户明确要求并行时才使用子代理。
   触发方式：/story-review、/审查、「审查一下」「帮我审一下」
   metadata:
   openclaw:
     source: https://github.com/worldwonderer/oh-story-claudecode
 ---
 
-# story-review：多视角对抗式审查
+# story-review：多视角审查
 ## Codex Compatibility
 
-This skill was adapted from a Claude/OpenClaw skill set for Codex. Treat `/skill-name` examples as natural-language invocation hints. When instructions mention Claude agents, hooks, or `.claude/` files, translate them to Codex-native behavior: perform the work locally unless the user explicitly asks for parallel/subagent work, and prefer Codex skills/references over Claude-specific automation.
+This skill was adapted from a Claude/OpenClaw skill set for Codex. Treat slash commands as invocation hints, not required syntax. Run the review locally by default. Use Codex subagents only when the user explicitly asks for parallel/subagent work.
 
-你是审查协调器。并行 spawn 4 个 Agent，各自从不同角度找问题，然后综合裁决。
+你是审查协调器。从四个视角找问题，然后综合裁决。
 
 **执行铁律：审查是找问题，不是验证正确性。**
 
@@ -21,14 +21,14 @@ This skill was adapted from a Claude/OpenClaw skill set for Codex. Treat `/skill
 
 ## Review Mode 选择
 
-- `/story-review` 或 `/story-review full` → spawn 全部 4 个 Agent
-- `/story-review lean` → 只 spawn story-architect + consistency-checker
-- `/story-review solo` → 不 spawn Agent，自身做基础检查
-- 未指定 → 默认 full，并告知用户
+- `/story-review` 或 `/story-review full` → 主线程完成四视角审查
+- `/story-review lean` → 只做 story-architect + consistency-checker 两个视角
+- `/story-review solo` → 基础检查
+- 用户明确说“并行/多代理/subagents” → 可把四个视角拆给 Codex subagents；否则不要自动 spawn
 
 ---
 
-## 审查流程（full 模式）
+## 审查流程（full 模式，Codex 默认）
 
 ## Phase 1：收集待审查内容
 
@@ -43,15 +43,13 @@ This skill was adapted from a Claude/OpenClaw skill set for Codex. Treat `/skill
    - 知乎盐言 → 读取 [references/rubrics/zhihu.md](references/rubrics/zhihu.md)
    - 未指定 → 默认加载 [references/quality-rubric.md](references/quality-rubric.md)
 
-**Phase 1.5：可选 story-explorer 预查询**。如果项目已部署 story-explorer agent（检查 `.claude/agents/story-explorer.md` 是否存在），可 spawn `Agent(subagent_type: "story-explorer", prompt: "项目目录：{dir}\n查询类型：setting_appearances\n查询参数：{审查涉及的设定关键词}")` 预查设定摘要，将结果注入各 agent 的 prompt，减少重复 grep。此步可选，跳过不影响审查流程。
+**Phase 1.5：可选预查询**。用 `rg`/文件读取预查设定关键词出现位置，减少重复翻文件。不要依赖 Claude agent 定义。
 
-## Phase 2：并行 Spawn 4 个 Agent（+ 可选 researcher）
+## Phase 2：四视角审查
 
-使用 Agent 工具并行调用 4 次（不同 subagent_type）。
+Codex 默认在主线程依次完成以下四个视角。只有用户明确要求并行/子代理时，才可以把视角拆给 Codex subagents；子代理 prompt 必须自包含文件路径、审查范围、平台 rubric 和输出格式。
 
-**调用规则**：每个 Agent 不继承父对话上下文，prompt 必须自包含文件路径和上下文。
-
-**Agent 1: story-architect**（subagent_type: story-architect）
+**视角 1: story-architect**
 - 审查视角：主题对齐、大纲结构、钩子/反转质量、范围控制
 - 提示指令：
   ```
@@ -76,7 +74,7 @@ This skill was adapted from a Claude/OpenClaw skill set for Codex. Treat `/skill
   RECOMMENDATIONS: [修改建议]
   ```
 
-**Agent 2: character-designer**（subagent_type: character-designer）
+**视角 2: character-designer**
 - 审查视角：角色语言风格一致性、对话质量、人物弧线
 - 提示指令：
   ```
@@ -99,7 +97,7 @@ This skill was adapted from a Claude/OpenClaw skill set for Codex. Treat `/skill
   RECOMMENDATIONS: [修改建议]
   ```
 
-**Agent 3: narrative-writer**（subagent_type: narrative-writer）
+**视角 3: narrative-writer**
 - 审查视角：AI味检测、格式合规、节奏均匀度
 - 提示指令：
   ```
@@ -120,7 +118,7 @@ This skill was adapted from a Claude/OpenClaw skill set for Codex. Treat `/skill
   RECOMMENDATIONS: [修改建议]
   ```
 
-**Agent 4: consistency-checker**（subagent_type: consistency-checker）
+**视角 4: consistency-checker**
 - 审查视角：grep-first 事实冲突检测，输出 S1-S4 报告
 - 提示指令：
   ```
@@ -144,10 +142,10 @@ This skill was adapted from a Claude/OpenClaw skill set for Codex. Treat `/skill
 
 ## Phase 3：综合裁决
 
-1. 收集 4 个 Agent 的 VERDICT 和 FINDINGS
+1. 收集 4 个视角的 VERDICT 和 FINDINGS
 2. 合并去重：将各 Agent 的 FINDINGS 按严重程度排序（S1 > S2 > S3 > S4，AI味重度 > 中度 > 轻度）
-3. **可选事实核查**：如果审查内容涉及需要验证的外部事实（历史年代、地理方位、职业细节等），额外 spawn `story-researcher` agent 搜索验证。将研究结果纳入裁决参考。
-4. **分歧呈现**：如果 Agent 间有冲突意见，明确呈现分歧让用户裁决
+3. **可选事实核查**：如果审查内容涉及需要验证的外部事实（历史年代、地理方位、职业细节等），按 Codex 规则使用可用搜索/浏览工具验证并标注来源。
+4. **分歧呈现**：如果各视角间有冲突意见，明确呈现分歧让用户裁决
    - 例：story-architect 认为某段"结构合理"，但 character-designer 认为"角色弧线有问题"
    - 不要自动妥协，让用户看到双方理由
 5. 输出综合审查报告
@@ -171,8 +169,8 @@ Review Mode: full
 ## 发现的问题
 {按 S1→S4 分级列出所有问题}
 
-## Agent 分歧（如有）
-{列出 Agent 间不同的意见}
+## 视角分歧（如有）
+{列出不同视角间不同的意见}
 
 ## 修改建议
 {按优先级排列}
@@ -182,7 +180,7 @@ Review Mode: full
 
 ## lean 模式
 
-只 spawn story-architect + consistency-checker，跳过 character-designer 和 narrative-writer。
+只做 story-architect + consistency-checker，跳过 character-designer 和 narrative-writer。
 其余流程同 full。
 
 ### lean 模式输出格式
@@ -208,7 +206,7 @@ Review Mode: lean
 
 ## solo 模式
 
-不 spawn Agent。skill 自身执行基础检查：
+执行基础检查：
 1. 格式合规性检查（一段一句、无空行、对话格式）
 2. 简单的设定一致性 grep
 3. 输出简化版报告

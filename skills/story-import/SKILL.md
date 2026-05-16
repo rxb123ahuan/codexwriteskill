@@ -1,4 +1,4 @@
----
+﻿---
 name: story-import
 description: |
   逆向导入已有小说。将已写好的小说（半成品或完本）反向解析为标准项目目录结构，
@@ -12,7 +12,9 @@ description: |
 # story-import：逆向导入已有小说
 ## Codex Compatibility
 
-This skill was adapted from a Claude/OpenClaw skill set for Codex. Treat `/skill-name` examples as natural-language invocation hints. When instructions mention Claude agents, hooks, or `.claude/` files, translate them to Codex-native behavior: perform the work locally unless the user explicitly asks for parallel/subagent work, and prefer Codex skills/references over Claude-specific automation.
+- Slash commands such as `/story-long-write` are invocation hints; normal Chinese requests should also trigger this skill.
+- Use Codex tools and local files directly. Do not rely on Claude-only commands, `.claude/agents`, hooks, or `Agent(subagent_type=...)`.
+- Run in the main thread by default. Use Codex subagents only when the user explicitly asks for parallel/subagent work.
 
 你是小说项目逆向工程师。将用户已有的小说文本（半成品或完本）解析为标准项目目录结构，使其可以无缝接入 story-long-write 的后续写作流程。
 
@@ -106,14 +108,14 @@ This skill was adapted from a Claude/OpenClaw skill set for Codex. Treat `/skill
 |------|------|------|------|----------|
 | 0 | 概要提取 | 原始文本 | 概要.md + 章节索引 | 章节结构识别完成 |
 | 1 | 黄金三章 | 前 3 章原文 | 第 1-3 章_深度拆解.md | 3 章拆解完成 |
-| 2 | 逐章摘要 | 分块章节文本 | 章节摘要.md（含情节点+角色）。每章3-40情节点（密度150-200字/个，按字数动态调节）。角色过滤（龙套不提取、别名归类）。**并行 chapter-extractor agent 模式**。**计数验证：摘要数 == 章节数**。 | 所有章节处理完成 |
+| 2 | 逐章摘要 | 分块章节文本 | 章节摘要.md（含情节点+角色）。每章3-40情节点（密度150-200字/个，按字数动态调节）。角色过滤（龙套不提取、别名归类）。Codex 默认主线程按章节处理；用户明确要求并行时才拆给 subagents。**计数验证：摘要数 == 章节数**。 | 所有章节处理完成 |
 | 3 | 聚合分析 | 全部章节摘要 | 剧情/*.md + 故事线.md。**故事框架识别**（前置）。**两步法剧情聚合**（先从摘要识别剧情大纲，再按大纲分配情节点）。**角色合并**（跨章节去重+别名归一）。**角色分级**（主角/反派/核心配角/功能角色）。**孤立情节兜底**（6步，含覆盖率验证）。**质量门控**（置信度>=0.85/覆盖率85%-95%/重叠率<=35%）。 | 质量检查通过 |
 | 4 | 设定+关系 | 阶段 3 合并后角色数据+情节点 | 设定/*.md + 角色/*.md。**两阶段角色模型**。**别名解析**（置信度≥0.85自动合并）。 | 设定和关系提取完成 |
 | 5 | 汇总报告 | 全部输出 | 拆文报告.md | 报告生成完成 |
 
 ### 分块策略
 
-沿用 story-long-analyze 的分块策略（Stage 2 使用 chapter-extractor agent 并行，其他阶段按以下策略分块）：
+沿用 story-long-analyze 的分块策略（Stage 2 默认主线程按章节处理，其他阶段按以下策略分块）：
 
 | 规模 | 策略 | 块大小 |
 |------|------|--------|
@@ -177,9 +179,6 @@ source: 导入反推
 ---
 
 # {角色名}
-## Codex Compatibility
-
-This skill was adapted from a Claude/OpenClaw skill set for Codex. Treat `/skill-name` examples as natural-language invocation hints. When instructions mention Claude agents, hooks, or `.claude/` files, translate them to Codex-native behavior: perform the work locally unless the user explicitly asks for parallel/subagent work, and prefer Codex skills/references over Claude-specific automation.
 
 > [导入反推] 以下信息从原文中自动提取，请人工审核。
 
@@ -229,9 +228,6 @@ This skill was adapted from a Claude/OpenClaw skill set for Codex. Treat `/skill
 
 ```markdown
 # 全书大纲
-## Codex Compatibility
-
-This skill was adapted from a Claude/OpenClaw skill set for Codex. Treat `/skill-name` examples as natural-language invocation hints. When instructions mention Claude agents, hooks, or `.claude/` files, translate them to Codex-native behavior: perform the work locally unless the user explicitly asks for parallel/subagent work, and prefer Codex skills/references over Claude-specific automation.
 
 > [导入反推] 从原文分析反推生成，请人工审核。
 
@@ -268,9 +264,6 @@ This skill was adapted from a Claude/OpenClaw skill set for Codex. Treat `/skill
 
 ```markdown
 # 伏笔追踪
-## Codex Compatibility
-
-This skill was adapted from a Claude/OpenClaw skill set for Codex. Treat `/skill-name` examples as natural-language invocation hints. When instructions mention Claude agents, hooks, or `.claude/` files, translate them to Codex-native behavior: perform the work locally unless the user explicitly asks for parallel/subagent work, and prefer Codex skills/references over Claude-specific automation.
 
 > [导入反推] 从情节点中自动识别的潜在伏笔，请人工确认。
 
@@ -285,9 +278,6 @@ This skill was adapted from a Claude/OpenClaw skill set for Codex. Treat `/skill
 
 ```markdown
 # 故事时间线
-## Codex Compatibility
-
-This skill was adapted from a Claude/OpenClaw skill set for Codex. Treat `/skill-name` examples as natural-language invocation hints. When instructions mention Claude agents, hooks, or `.claude/` files, translate them to Codex-native behavior: perform the work locally unless the user explicitly asks for parallel/subagent work, and prefer Codex skills/references over Claude-specific automation.
 
 > [导入反推] 从原文时间标记中自动提取，请人工确认。
 
@@ -361,8 +351,8 @@ This skill was adapted from a Claude/OpenClaw skill set for Codex. Treat `/skill
 
 - 设置 `.active-book` 指向导入的书名目录
 - 确认项目可以被 story-long-write 识别
-- 检查项目是否已部署 story-setup 基础设施（`.story-deployed` 是否存在）。如不存在，建议用户运行 `/story-setup` 完成环境部署（包括 agents、hooks、rules、CLAUDE.md）
-- 可选验证：如果项目已部署 story-explorer agent（检查 `.claude/agents/story-explorer.md` 是否存在），可 spawn `Agent(subagent_type: "story-explorer", prompt: "项目目录：{dir}\n查询类型：progress\n查询参数：导入验证")` 交叉验证迁移数据完整性
+- 检查项目是否已部署 story-setup 基础设施（`.story-deployed` 是否存在）。如不存在，建议用户运行 `/story-setup` 创建 Codex 写作说明、规则和追踪模板
+- 可选验证：由 Codex 主线程用 `rg`/文件读取交叉验证迁移数据完整性；不要依赖 Claude agent 定义
 
 ---
 
@@ -407,7 +397,7 @@ This skill was adapted from a Claude/OpenClaw skill set for Codex. Treat `/skill
 | 场景 | 加载文件 |
 |------|---------|
 | 项目结构规范 | `../story-long-write/SKILL.md`（Phase 4 项目文件结构） |
-| 部署模板 | `../story-setup/references/templates/CLAUDE.md.tmpl` |
+| 部署模板 | `../story-setup/references/templates/上下文.md.tmpl`；Claude 兼容模板仅在用户明确要求时使用 |
 
 ---
 

@@ -1,4 +1,4 @@
----
+﻿---
 name: story
 description: |
   网络小说工具箱主入口。根据用户需求自动路由到对应 skill。
@@ -9,7 +9,9 @@ description: |
 # story：网文工具箱路由
 ## Codex Compatibility
 
-This skill was adapted from a Claude/OpenClaw skill set for Codex. Treat `/skill-name` examples as natural-language invocation hints. When instructions mention Claude agents, hooks, or `.claude/` files, translate them to Codex-native behavior: perform the work locally unless the user explicitly asks for parallel/subagent work, and prefer Codex skills/references over Claude-specific automation.
+- Slash commands such as `/story-long-write` are invocation hints; normal Chinese requests should also trigger this skill.
+- Use Codex tools and local files directly. Do not rely on Claude-only commands, `.claude/agents`, hooks, or `Agent(subagent_type=...)`.
+- Run in the main thread by default. Use Codex subagents only when the user explicitly asks for parallel/subagent work.
 
 你是网文工具箱的路由入口。用户的请求模糊时由你分发到具体 skill。
 
@@ -28,8 +30,8 @@ This skill was adapted from a Claude/OpenClaw skill set for Codex. Treat `/skill
 | 环境部署 | 准备写书、搭环境、初始化 | `/story-setup` |
 | 浏览器操控 | 浏览器、抓取、登录态 | `/browser-cdp` |
 | 导入小说 | 导入、反向解析、导入小说、把我的书导进来 | `/story-import` |
-| 查故事资料 | 查角色、查伏笔、查进度、查设定、什么状态、写到哪了 | 直接 spawn `story-explorer` agent（使用结构化 prompt：`项目目录：{dir}\n查询类型：{根据意图选择}\n查询参数：{用户查询}`） |
-| 查资料 | 查资料、帮我查资料、调研、搜索一下、搜一下 | 直接 spawn `story-researcher` agent |
+| 查故事资料 | 查角色、查伏笔、查进度、查设定、什么状态、写到哪了 | Codex 主线程用 `rg`/文件读取查询项目资料，必要时按结构化问题输出 |
+| 查资料 | 查资料、帮我查资料、调研、搜索一下、搜一下 | 按 Codex 浏览/搜索规则查证并给出来源；需要写入资料时保存到 `参考资料/` |
 
 ## 路由流程
 

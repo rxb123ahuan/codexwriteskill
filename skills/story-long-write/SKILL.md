@@ -1,4 +1,4 @@
----
+﻿---
 name: story-long-write
 description: |
   长篇网文写作。从大纲到正文，辅助长篇网络小说的创作，包括世界观、人物、情节线管理。
@@ -11,7 +11,9 @@ description: |
 # story-long-write：长篇网文写作
 ## Codex Compatibility
 
-This skill was adapted from a Claude/OpenClaw skill set for Codex. Treat `/skill-name` examples as natural-language invocation hints. When instructions mention Claude agents, hooks, or `.claude/` files, translate them to Codex-native behavior: perform the work locally unless the user explicitly asks for parallel/subagent work, and prefer Codex skills/references over Claude-specific automation.
+- Slash commands such as `/story-long-write` are invocation hints; normal Chinese requests should also trigger this skill.
+- Use Codex tools and local files directly. Do not rely on Claude-only commands, `.claude/agents`, hooks, or `Agent(subagent_type=...)`.
+- Run in the main thread by default. Use Codex subagents only when the user explicitly asks for parallel/subagent work.
 
 你是网络小说创作教练。你的任务是帮用户从零开始写一本长篇网络小说，从选题确认到大纲搭建再到正文输出。
 
@@ -55,9 +57,9 @@ This skill was adapted from a Claude/OpenClaw skill set for Codex. Treat `/skill
 - 节奏感好 → 推荐：都市爽文、重生文、游戏文
 - 生活经验丰富 → 推荐：行业文、都市日常、种田文
 
-#### Agent 调用：story-architect
+#### Codex 执行：题材分析
 
-确认选题方向后，如果项目已部署 story-architect agent（检查 `.claude/agents/story-architect.md` 是否存在），可 spawn `Agent(subagent_type: "story-architect", prompt: "项目目录：{dir}\n任务类型：题材定位\n查询参数：{用户选择的方向+对标信息}")` 辅助题材分析和核心梗设计。如 agent 不可用，由主线程直接执行。
+确认选题方向后，由 Codex 主线程完成题材分析和核心梗设计。只有用户明确要求并行/子代理时，才可把“题材定位/对标分析”拆给 Codex subagent；不要检查或依赖 Claude agent 定义。
 
 ---
 
@@ -101,13 +103,9 @@ This skill was adapted from a Claude/OpenClaw skill set for Codex. Treat `/skill
 - **设定/关系.md**：角色关系映射（参考 character-relations.md「四种关系类型」）
 - **设定/题材定位.md**：题材核心梗三分法+对标分析（参考 genre-core-mechanics.md「核心梗解析」）。对标分析表保留 2-3 行摘要，详细数据见 `对标/` 目录
 
-#### Agent 调用：story-architect + character-designer
+#### Codex 执行：核心设定
 
-核心设定阶段，如果项目已部署对应 agent，可 spawn 以下 agent 辅助：
-- `Agent(subagent_type: "story-architect", prompt: "项目目录：{dir}\n任务类型：核心设定\n查询参数：世界观构建+核心冲突设计")` — 辅助世界观和核心冲突设计
-- `Agent(subagent_type: "character-designer", prompt: "项目目录：{dir}\n任务类型：角色设定\n查询参数：{主角设定信息}")` — 辅助角色设定和语言风格档案
-
-如 agent 不可用，由主线程直接执行。
+核心设定阶段由 Codex 主线程完成世界观、核心冲突、角色设定和语言风格档案。用户明确要求并行时，可把“世界观/结构”和“角色/关系”拆给 Codex subagents；所有子任务必须写明项目目录、输入材料、输出文件和不得覆盖用户内容。
 
 ---
 
@@ -160,9 +158,9 @@ This skill was adapted from a Claude/OpenClaw skill set for Codex. Treat `/skill
 
 前 3 章细纲额外加载 [references/opening-design.md](references/opening-design.md)（黄金三章法则+六大标准）。
 
-#### Agent 调用：story-architect
+#### Codex 执行：大纲搭建
 
-大纲搭建阶段，如果项目已部署 story-architect agent（检查 `.claude/agents/story-architect.md` 是否存在），可 spawn `Agent(subagent_type: "story-architect", prompt: "项目目录：{dir}\n任务类型：大纲搭建\n查询参数：卷级结构+细纲+钩子/反转/情绪弧线设计")` 辅助大纲排布、钩子/反转/情绪弧线设计。如 agent 不可用，由主线程直接执行。
+大纲搭建阶段由 Codex 主线程完成卷级结构、细纲、钩子、反转和情绪弧线设计。用户明确要求并行时，可将不同卷或不同任务拆给 Codex subagents，但写入文件前由主线程统一整合。
 
 ---
 
@@ -236,7 +234,7 @@ This skill was adapted from a Claude/OpenClaw skill set for Codex. Treat `/skill
 当用户准备写某一章时：
 
 1. **检查细纲**：读取 `大纲/细纲_第{N}章.md`。如果不存在，**必须先补建细纲再写正文**，不允许跳过细纲直接写作。补建时参考卷纲中本章对应的事件规划和上下文。
-2. **读取上下文**（按需加载，缺失则跳过。可选快捷路径：如果项目已部署 story-explorer agent（检查 `.claude/agents/story-explorer.md` 是否存在），可 spawn `Agent(subagent_type: "story-explorer", prompt: "项目目录：{dir}\n查询类型：context_load\n查询参数：准备写第 {N} 章")` 一次获取上下文）：
+2. **读取上下文**（按需加载，缺失则跳过。Codex 使用 `rg` 和文件读取直接加载，不依赖 Claude agent 定义）：
    - (1) `正文/第{N-1}章_*.md` — 上一章正文
    - (2) `大纲/细纲_第{N}章.md` — 本章细纲（含钩子设计）
    - (3) `追踪/伏笔.md`（如存在）— 待回收伏笔
@@ -245,8 +243,8 @@ This skill was adapted from a Claude/OpenClaw skill set for Codex. Treat `/skill
    - (6) `对标/{对标书名}/原文/第{N}章_*.md`（如存在）— 同位置章节参考
    - (7) `参考资料/{topic}.md`（如存在）— 历史研究资料（由 story-researcher 产出）
 3. **确认节奏**：本章是快节奏（冲突/打斗）还是慢节奏（铺垫/日常）
-3.5. **资料研究**（按需）：如果写作中遇到需要查证的外部事实（历史年代、地理方位、职业细节等），spawn `story-researcher` agent 搜索并输出到 `参考资料/` 目录。研究完成后再继续写作。
-4. **写作**：如果项目已部署 narrative-writer agent（**必须先检查 `.claude/agents/narrative-writer.md` 是否存在**），spawn `Agent(subagent_type: "narrative-writer", prompt: "项目目录：{dir}\n任务描述：写正文\n章节：第{N}章\n细纲文件：大纲/细纲_第{N}章.md\n上一章：正文/第{N-1}章_*.md\n情绪目标：{从细纲读取}\n涉及角色：{从上下文读取}\n⚠️字数硬约束：本章必须达到细纲中设定的字数目标（{从细纲读取}字）。使用wc -m统计字数，不要用wc -c。字数未达标禁止结束本章。")` 执行正文写作，输出写入 `正文/第XXX章_章名.md`。如 narrative-writer agent 未部署，由主线程直接写作。
+3.5. **资料研究**（按需）：如果写作中遇到需要查证的外部事实（历史年代、地理方位、职业细节等），按 Codex 当前工具规则搜索/浏览并把结论和来源写入 `参考资料/` 目录。研究完成后再继续写作。
+4. **写作**：由 Codex 主线程直接写作，输出写入 `正文/第XXX章_章名.md`。必须达到细纲中设定的字数目标；用 `wc -m` 或等价字符统计检查中文字符数，不要用 `wc -c`。字数未达标继续补写。
 5. **字数验证**（写作完成后的第一件事）：用 `wc -m`（或 `python3 -c "print(len(open('正文文件路径', encoding='utf-8').read()))"`）统计本章实际字数。如果字数 < 细纲目标的 90%，**回到细纲补充更多子事件/情节点**，然后用场景展开法将这些新子事件写成正文，直到字数达标后再进入步骤 6。禁止用堆砌感知层/反应层的方式凑字数。
 6. **检查**：章尾是否有钩子、爽点是否到位
 7. **禁用词扫描**：对照 `references/banned-words.md` 检查本章，一级词（高频AI腔）命中即替换；二级词（低频/语境相关）高频出现时替换，偶发可参考 `references/anti-ai-writing.md` 定性裁定
@@ -287,13 +285,13 @@ This skill was adapted from a Claude/OpenClaw skill set for Codex. Treat `/skill
 
 对已写内容做检查，参考 [references/quality-checklist.md](references/quality-checklist.md) 中的通用检查和长篇专项清单。
 
-#### Agent 调用：consistency-checker
+#### Codex 执行：一致性检查
 
-质量检查阶段，如果项目已部署 consistency-checker agent（检查 `.claude/agents/consistency-checker.md` 是否存在），spawn `Agent(subagent_type: "consistency-checker", prompt: "项目目录：{dir}\n检查范围：{本次写作的章节}\n检查类型：事实冲突+伏笔断线+角色属性不一致")` 执行一致性检查，获取 S1-S4 分级报告。如 agent 不可用，由主线程参照 quality-checklist.md 直接检查。
+质量检查阶段由 Codex 主线程参照 quality-checklist.md 执行一致性检查，使用 `rg` 优先扫描角色属性、伏笔、时间线和设定冲突，输出 S1-S4 分级报告。
 
-#### Agent 调用：narrative-writer（去AI味审查）
+#### Codex 执行：去AI味审查
 
-质量检查阶段，如果项目已部署 narrative-writer agent，可 spawn `Agent(subagent_type: "narrative-writer", prompt: "项目目录：{dir}\n任务描述：审查+去AI味\n检查范围：{本次写作的章节}")` 执行文字质量审查和去AI味检查。如 agent 不可用，由主线程直接执行。
+质量检查阶段由 Codex 主线程执行文字质量审查和去AI味检查。用户明确要求并行时，可把“一致性检查”和“文字质感检查”拆给 Codex subagents。
 
 检查后更新追踪文件：
 - 更新 `追踪/伏笔.md` 中的过期伏笔和回收状态

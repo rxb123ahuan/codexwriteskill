@@ -1,4 +1,4 @@
----
+﻿---
 name: story-short-write
 description: |
   短篇网文写作。辅助短篇小说创作，从构思到成稿，聚焦情绪拉扯与节奏把控。
@@ -11,7 +11,9 @@ description: |
 # story-short-write：短篇网文写作
 ## Codex Compatibility
 
-This skill was adapted from a Claude/OpenClaw skill set for Codex. Treat `/skill-name` examples as natural-language invocation hints. When instructions mention Claude agents, hooks, or `.claude/` files, translate them to Codex-native behavior: perform the work locally unless the user explicitly asks for parallel/subagent work, and prefer Codex skills/references over Claude-specific automation.
+- Slash commands such as `/story-long-write` are invocation hints; normal Chinese requests should also trigger this skill.
+- Use Codex tools and local files directly. Do not rely on Claude-only commands, `.claude/agents`, hooks, or `Agent(subagent_type=...)`.
+- Run in the main thread by default. Use Codex subagents only when the user explicitly asks for parallel/subagent work.
 
 你是短篇网文写作执行器。从构思到成稿，完成一篇完整的短篇小说。
 
@@ -60,9 +62,9 @@ This skill was adapted from a Claude/OpenClaw skill set for Codex. Treat `/skill
 
 > 如果用户有参考小说，先用 `/story-short-analyze` 拆解，输出存入 `拆文库/{书名}/`（或用户指定的 对标/ 目录）。写作时参考其结构/情绪/反转设计。
 
-#### Agent 调用：story-architect
+#### Codex 执行：短篇构思
 
-构思阶段，如果项目已部署 story-architect agent（检查 `.claude/agents/story-architect.md` 是否存在），可 spawn `Agent(subagent_type: "story-architect", prompt: "项目目录：{dir}\n任务类型：短篇构思\n查询参数：{情绪目标+题材方向}")` 辅助框架设计。如 agent 不可用，由主线程直接执行。
+构思阶段由 Codex 主线程完成框架设计。只有用户明确要求并行/子代理时，才可拆给 Codex subagent；不要检查或依赖 Claude agent 定义。
 
 帮用户确定短篇的核心框架：
 
@@ -109,9 +111,9 @@ This skill was adapted from a Claude/OpenClaw skill set for Codex. Treat `/skill
 5. 反转信息差验证（公式见 writing-workflow.md）
 6. 伏笔回查清单（标准见 writing-workflow.md）
 
-#### Agent 调用：character-designer
+#### Codex 执行：角色设定
 
-设计任务完成后，如果项目已部署 character-designer agent（检查 `.claude/agents/character-designer.md` 是否存在），可 spawn `Agent(subagent_type: "character-designer", prompt: "项目目录：{dir}\n任务类型：角色设定\n查询参数：{人设速写+关系}")` 辅助角色设定和语言风格档案。如 agent 不可用，由主线程直接执行。
+设计任务完成后，由 Codex 主线程完成角色设定和语言风格档案。用户明确要求并行时，可拆给 Codex subagent。
 
 ---
 
@@ -121,9 +123,9 @@ This skill was adapted from a Claude/OpenClaw skill set for Codex. Treat `/skill
 
 **写作指令：按场景展开法逐场景写作，不是翻译大纲。每个场景让读者和主角一起经历。**
 
-#### Agent 调用：narrative-writer
+#### Codex 执行：正文写作
 
-正文写作阶段，如果项目已部署 narrative-writer agent（检查 `.claude/agents/narrative-writer.md` 是否存在），spawn `Agent(subagent_type: "narrative-writer", prompt: "项目目录：{dir}\n任务描述：写正文\n情绪目标：{从核心框架读取}\n小节大纲：小节大纲.md\n涉及角色：{从核心框架读取}")` 执行正文写作。如 agent 不可用，由主线程直接写作。
+正文写作阶段由 Codex 主线程直接写作。写入正文文件前先确认核心框架、小节大纲、涉及角色和情绪目标。
 
 ⚠️ **硬约束：每节 ≥ 800 字 / 50-65 行**。
 题材例外：爽文、打脸、系统流等高信息密度题材可降至 ≥ 500 字/节（见 genre-writing-formulas.md 各题材速查表），但不得低于 500 字。
@@ -254,13 +256,13 @@ This skill was adapted from a Claude/OpenClaw skill set for Codex. Treat `/skill
 加载 `references/writing-workflow.md` 中的精修清单完成检查。
 重点：开头钩子、情绪曲线、反转铺垫、每句话价值、格式规范、AI 腔排查。
 
-#### Agent 调用：narrative-writer（去AI味）+ consistency-checker
+#### Codex 执行：精修检查
 
-精修阶段，如果项目已部署对应 agent，可 spawn：
-- `Agent(subagent_type: "narrative-writer", prompt: "项目目录：{dir}\n任务描述：去AI味+格式检查\n检查范围：{正文文件}")` — 执行去AI味（6 Gate）和格式合规检查
-- `Agent(subagent_type: "consistency-checker", prompt: "项目目录：{dir}\n检查范围：{正文文件}\n检查类型：事实冲突+伏笔断线+角色属性不一致")` — 执行一致性检查
+精修阶段由 Codex 主线程执行：
+- 去AI味（6 Gate）和格式合规检查
+- 事实冲突、伏笔断线、角色属性不一致检查
 
-如 agent 不可用，由主线程直接执行。
+用户明确要求并行时，可把文字质感和一致性检查拆给 Codex subagents。
 
 **自检记录隔离规则**：
 - 所有自检记录（字数统计、禁用词扫描结果、格式检查清单）必须写入独立文件 `自检_{标题}.md`（标题取自 Phase 2 核心框架）

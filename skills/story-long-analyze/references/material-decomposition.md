@@ -7,7 +7,7 @@
 3. [输出目录结构](#输出目录结构)
 4. [质量阈值体系](#质量阈值体系)
 5. [孤立情节兜底](#孤立情节兜底)
-6. [Claude Code 执行指引](#claude-code-执行指引)
+6. [Codex 执行指引](#codex-执行指引)
 
 ---
 
@@ -18,10 +18,9 @@
 - 识别章节分隔符（第X章、Chapter X、数字编号等）
 - 提取章节标题，记录每章字数
 
-### 阶段 2：原子提取（并行 Agent 处理每章）
+### 阶段 2：原子提取（Codex 按章节处理）
 
-优先使用 chapter-extractor agent 并行处理。每章 spawn 一个 agent，每次 5-8 个并发。
-Agent 不可用时退回主线程串行处理。
+Codex 默认主线程按章节处理。只有用户明确要求并行/子代理时，才可把章节拆给 Codex subagents。
 
 Agent 输出格式严格对齐本阶段 A/B/C 三部分的合并输出，详见 output-templates.md 阶段2模板。
 
@@ -396,11 +395,11 @@ Stage 2 的角色轻量提及数据在此阶段升级为完整档案。
 
 ---
 
-## Claude Code 执行指引
+## Codex 执行指引
 
 ### 分块策略
 
-Stage 2 使用 chapter-extractor agent 并行处理（每章一个 agent，每批 5-8 个），不分块。
+Stage 2 默认由 Codex 主线程按章节处理，不分块。用户明确要求并行时，每批最多 3-5 个 Codex subagents。
 其他阶段（0、1、3、4、5）的分块策略如下：
 
 | 规模 | 策略 | 块大小 |

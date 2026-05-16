@@ -1,43 +1,31 @@
----
+﻿---
 name: story-cover
 description: |
-  小说封面生成。根据书名、作者名自动分析题材风格，调用 GPT-Image-2 直接生成含标题和署名的专业级网文封面。
+  小说封面生成。根据书名、作者名自动分析题材风格，优先使用 Codex 的 image generation 工具生成含标题和署名的网文封面。
   触发方式：/story-cover、/封面、「帮我做个封面」「生成封面图」「做个小说封面」「封面设计」
   metadata:
   openclaw:
-    requires:
-      env:
-        - GPT_IMAGE_API_KEY
-      bins:
-        - curl
-    primaryEnv: GPT_IMAGE_API_KEY
     source: https://github.com/worldwonderer/oh-story-claudecode
 ---
 
 # story-cover：小说封面生成
 ## Codex Compatibility
 
-This skill was adapted from a Claude/OpenClaw skill set for Codex. Treat `/skill-name` examples as natural-language invocation hints. When instructions mention Claude agents, hooks, or `.claude/` files, translate them to Codex-native behavior: perform the work locally unless the user explicitly asks for parallel/subagent work, and prefer Codex skills/references over Claude-specific automation.
+- Slash commands such as `/story-long-write` are invocation hints; normal Chinese requests should also trigger this skill.
+- Use Codex tools and local files directly. Do not rely on Claude-only commands, `.claude/agents`, hooks, or `Agent(subagent_type=...)`.
+- Run in the main thread by default. Use Codex subagents only when the user explicitly asks for parallel/subagent work.
 
-你是小说封面设计师。根据书名和题材，调用 GPT-Image-2 一次性生成包含书名和作者名的完整封面。
+你是小说封面设计师。根据书名和题材，优先使用 Codex 可用的图像生成工具一次性生成包含书名和作者名的完整封面。
 
 **核心原则：封面是读者的第一印象，一眼传达题材和氛围。**
 
 ---
 
-## API 配置
+## Codex 生成方式
 
-```bash
-# 可通过 GPT_IMAGE_BASE_URL 环境变量覆盖默认地址（如使用代理服务）
-## Codex Compatibility
-
-This skill was adapted from a Claude/OpenClaw skill set for Codex. Treat `/skill-name` examples as natural-language invocation hints. When instructions mention Claude agents, hooks, or `.claude/` files, translate them to Codex-native behavior: perform the work locally unless the user explicitly asks for parallel/subagent work, and prefer Codex skills/references over Claude-specific automation.
-BASE_URL=${GPT_IMAGE_BASE_URL:-https://api.openai.com/v1}
-API_KEY=${GPT_IMAGE_API_KEY:?请设置 export GPT_IMAGE_API_KEY=你的key}
-MODEL=gpt-image-2
-SIZE=1024x1536
-FORMAT=b64_json
-```
+- 在 Codex 环境中，直接调用可用的图像生成工具，不要求用户配置 `GPT_IMAGE_API_KEY`。
+- 如果当前会话没有图像生成工具，再退回到用户提供的外部 API/脚本方案；退回前说明缺少的能力。
+- 生成后如需落盘，按用户项目结构保存到 `{书名}/封面/`；如果工具只返回图像结果，则直接展示结果。
 
 ---
 
@@ -144,47 +132,16 @@ Professional book cover, high detail digital painting, portrait 2:3 ratio, no wa
 - 光效是指定光源方向 + 颜色（如 `dramatic golden light from above`）
 - 用 `digital painting style` 而非 `photo`，避免真人照片感
 
-### Step 3：调用 API
+### Step 3：调用 Codex 图像生成
 
-#### 文生图
+将 Step 2 的完整提示词传给 Codex 图像生成工具。若用户提供参考图，使用图像编辑/参考图能力；否则使用文生图。
 
-```bash
-curl -s "${BASE_URL}/images/generations" \
-  -H "Authorization: Bearer ${API_KEY}" \
-  -H "Content-Type: application/json" \
-  -d "{
-    \"model\": \"${MODEL}\",
-    \"prompt\": \"${PROMPT}\",
-    \"size\": \"${SIZE}\",
-    \"response_format\": \"${FORMAT}\"
-  }" > response.json
-# 若返回 "Unknown parameter: response_format"，去掉该参数重试（部分渠道不支持）
-## Codex Compatibility
-
-This skill was adapted from a Claude/OpenClaw skill set for Codex. Treat `/skill-name` examples as natural-language invocation hints. When instructions mention Claude agents, hooks, or `.claude/` files, translate them to Codex-native behavior: perform the work locally unless the user explicitly asks for parallel/subagent work, and prefer Codex skills/references over Claude-specific automation.
-```
-
-#### 图生图（有参考图时）
-
-```bash
-curl -s "${BASE_URL}/images/edits" \
-  -H "Authorization: Bearer ${API_KEY}" \
-  -H "Content-Type: application/json" \
-  -d "{
-    \"model\": \"${MODEL}\",
-    \"prompt\": \"${PROMPT}\",
-    \"image\": \"${IMAGE_URL}\",
-    \"size\": \"${SIZE}\",
-    \"response_format\": \"${FORMAT}\"
-  }" > response.json
-```
-
-#### 保存图片
-
-```bash
-mkdir -p "${BOOK_DIR}/封面"
-jq -r '.data[0].b64_json' response.json | base64 --decode > "${BOOK_DIR}/封面/封面_v1.png"
-```
+生成提示词中必须包含：
+- 竖版网文封面，2:3 或接近 1024x1536
+- 中文书名和作者名
+- 字体风格、文字位置和对比度要求
+- 题材画面、人物/场景、色彩、光效
+- `no watermark`
 
 ### Step 4：质量检查 + 迭代
 

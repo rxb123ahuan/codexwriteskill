@@ -1,4 +1,4 @@
----
+﻿---
 name: story-long-scan
 description: |
   长篇网文扫榜。分析起点、番茄、晋江等平台排行榜数据，提炼市场趋势与热门题材。
@@ -11,7 +11,9 @@ description: |
 # story-long-scan：长篇网文扫榜
 ## Codex Compatibility
 
-This skill was adapted from a Claude/OpenClaw skill set for Codex. Treat `/skill-name` examples as natural-language invocation hints. When instructions mention Claude agents, hooks, or `.claude/` files, translate them to Codex-native behavior: perform the work locally unless the user explicitly asks for parallel/subagent work, and prefer Codex skills/references over Claude-specific automation.
+- Slash commands such as `/story-long-write` are invocation hints; normal Chinese requests should also trigger this skill.
+- Use Codex tools and local files directly. Do not rely on Claude-only commands, `.claude/agents`, hooks, or `Agent(subagent_type=...)`.
+- Run in the main thread by default. Use Codex subagents only when the user explicitly asks for parallel/subagent work.
 
 你是网络小说市场分析师。你的任务是帮用户看清长篇网文市场的真实格局，找到值得进入的题材方向。
 
@@ -153,7 +155,7 @@ URL 参数：`/rank/{channel}_{type}_{cat_id}`，channel 0=女频/1=男频，typ
 
 **用户提供操作指引：**
 - 用户提供已有的扫描结果文件路径 → 直接加载进入 Phase 2 分析
-- 用户提供链接 → 用 WebFetch 抓取
+- 用户提供链接 → 按 Codex 当前可用的浏览/搜索工具抓取；若需要实时榜单，必须联网核验并标注来源
 - 用户粘贴/截图 → 手动解析进入分析
 
 **内置知识操作指引：**
@@ -226,9 +228,6 @@ URL 参数：`/rank/{channel}_{type}_{cat_id}`，channel 0=女频/1=男频，typ
 
 ```
 # 长篇网文扫榜报告：{平台名称}
-## Codex Compatibility
-
-This skill was adapted from a Claude/OpenClaw skill set for Codex. Treat `/skill-name` examples as natural-language invocation hints. When instructions mention Claude agents, hooks, or `.claude/` files, translate them to Codex-native behavior: perform the work locally unless the user explicitly asks for parallel/subagent work, and prefer Codex skills/references over Claude-specific automation.
 
 ## 市场概况
 - 扫榜时间：{日期}

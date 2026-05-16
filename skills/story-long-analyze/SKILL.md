@@ -1,4 +1,4 @@
----
+﻿---
 name: story-long-analyze
 description: |
   长篇网文拆文。深度拆解爆款长篇小说的黄金三章、人设架构、爽点设计、节奏控制。
@@ -15,7 +15,9 @@ description: |
 # story-long-analyze：长篇网文拆文
 ## Codex Compatibility
 
-This skill was adapted from a Claude/OpenClaw skill set for Codex. Treat `/skill-name` examples as natural-language invocation hints. When instructions mention Claude agents, hooks, or `.claude/` files, translate them to Codex-native behavior: perform the work locally unless the user explicitly asks for parallel/subagent work, and prefer Codex skills/references over Claude-specific automation.
+- Slash commands such as `/story-long-write` are invocation hints; normal Chinese requests should also trigger this skill.
+- Use Codex tools and local files directly. Do not rely on Claude-only commands, `.claude/agents`, hooks, or `Agent(subagent_type=...)`.
+- Run in the main thread by default. Use Codex subagents only when the user explicitly asks for parallel/subagent work.
 
 你是网络小说结构分析师。
 
@@ -113,7 +115,7 @@ This skill was adapted from a Claude/OpenClaw skill set for Codex. Treat `/skill
 |------|------|------|------|----------|
 | 0 | 概要提取 | 原始文本 | 概要.md + 章节索引 | 章节结构识别完成 |
 | 1 | 黄金三章 | 前3章原文 | 第1-3章_深度拆解.md | 3章拆解完成 |
-| 2 | 逐章摘要 | 分块章节文本 | 章节摘要.md（含情节点+角色）。角色过滤（龙套不提取、别名归类）。每章3-40情节点（密度150-200字/个，按字数动态调节）。**并行模式：每章 spawn chapter-extractor agent**。**计数验证：摘要数 == 章节数，不等则标记失败章节**。 | 所有章节处理完成 |
+| 2 | 逐章摘要 | 分块章节文本 | 章节摘要.md（含情节点+角色）。角色过滤（龙套不提取、别名归类）。每章3-40情节点（密度150-200字/个，按字数动态调节）。Codex 默认主线程按章节处理；用户明确要求并行时，可拆给 Codex subagents。**计数验证：摘要数 == 章节数，不等则标记失败章节**。 | 所有章节处理完成 |
 | 3 | 聚合分析 | 全部章节摘要 | 剧情/*.md + 故事线.md。**故事框架识别**（前置，决定聚合策略）。**两步法剧情聚合**（先从摘要识别剧情大纲，再按大纲分配情节点）。**角色合并**（跨章节去重+别名归一）。**角色分级**（主角/反派/核心配角/功能角色）。**孤立情节兜底**（6步，含覆盖率验证）。**质量门控**（置信度≥0.85/覆盖率85%-95%/重叠率≤35%）。 | 质量检查通过 |
 | 4 | 设定+关系 | 阶段3合并后角色数据+情节点 | 设定/*.md + 角色/*.md。**两阶段角色模型**（Stage 2 轻量提及→Stage 4 完整档案）。**别名解析**（置信度≥0.85自动合并）。**角色关系提取**（从情节点提取，不从原文；含演变追踪+最终状态合并+隐含推断）。 | 设定和关系提取完成 |
 | 5 | 汇总报告 | 全部输出 | 拆文报告.md | 报告生成完成 |
@@ -142,47 +144,55 @@ Stage 4后半（角色关系提取）— 串行，依赖角色实体存在
 
 ---
 
-## Stage 2 并行 Agent 策略
+## Stage 2 Codex 执行策略
 
-Stage 2 使用 chapter-extractor agent 并行处理每章，替代原来的串行分块。
+Stage 2 默认由 Codex 主线程按章节处理。只有用户明确要求“并行/子代理/subagents”时，才可把章节拆给 Codex subagents；不要检查或依赖 Claude agent 定义。
 
-### 调用方式
+### 子代理可选提示词
 
-```python
-Agent(
-  subagent_type: "chapter-extractor",
-  prompt: "章节编号：第{N}章\n章节标题：{标题}\n章节字数：{字数}\n\n章节原文：\n{原文文本}"
-)
+```
+章节编号：第{N}章
+章节标题：{标题}
+章节字数：{字数}
+
+任务：提取本章情节点和出场人物。输出 markdown，包含：
+1. 3-40 个情节点（按 150-200 字/点动态调节）
+2. 出场人物表（姓名/重要性/别名/本章表现）
+3. 本章功能与章尾钩子
+
+章节原文：
+{原文文本}
 ```
 
 ### 批量策略
 
-- 每次 spawn 5-8 个 agent（避免并发限制）
-- 等待当前批次全部完成后，再 spawn 下一批
+- 主线程默认按章节顺序处理，长篇可按 5-8 章一批做进度 checkpoint
+- 用户明确要求并行时，每次最多分派 3-5 个 Codex subagents
+- 等待当前批次全部完成后，再处理下一批
 - 每批完成后更新 `_progress.md` 记录已处理章节
 
-### Agent 输出收集
+### 输出收集
 
-- 每个 agent 返回 markdown 格式的提取结果
-- 主线程将 agent 输出写入 `章节/第{N}章_摘要.md`
-- 收集所有 agent 的出场人物表，供 Stage 3 合并使用
+- 每章输出 markdown 格式的提取结果
+- 写入 `章节/第{N}章_摘要.md`
+- 收集所有出场人物表，供 Stage 3 合并使用
 
 ### 失败处理
 
-- 单章 agent 失败不阻断管道
+- 单章失败不阻断管道
 - 失败章节记录到 `_progress.md` 的「失败记录」表
 - 全部批次完成后，对失败章节重试一次
 - 重试仍失败的章节标记为 `⚠️ 跳过`，在拆文报告中注明
 
-### Agent 不可用降级
+### 降级
 
-如果 `.claude/agents/chapter-extractor.md` 不存在（未部署），Stage 2 退回串行分块模式，由主线程按原分块策略处理。
+如果上下文或时间不足，优先完成章节索引、黄金三章和关键剧情段摘要；在 `_progress.md` 标记未处理章节。
 
 ---
 
 ## 分块策略
 
-Stage 2 使用 chapter-extractor agent 按章节并行，不分块。
+Stage 2 默认按章节处理，不再依赖 Claude agent。超长章节可按自然段落分块，但输出仍合并成单章摘要。
 
 Stage 3-5 的分块策略（输入分块大小 6-8K token/块，详见 [material-decomposition.md](references/material-decomposition.md)）：
 
@@ -190,7 +200,7 @@ Stage 3-5 的分块策略（输入分块大小 6-8K token/块，详见 [material
 - 中小型（50-100章）：按阶段整体处理（可选智能分块）
 - 中型（100-500章）：按 5-8 章分块
 - 大型（>500章）：**智能分块** — 基于章节摘要识别自然分界（境界突破/地图切换/大型事件），按语义连贯性切分。题材特化：修仙按境界/地图，都市按事件线/身份转变，历史按阶段/战役，玄幻按世界地图/势力。无明显结构时按固定章节数均匀切分。每块 50-200 章。**硬约束：所有章节必须被覆盖，块之间不能重叠（每章只属于一个块）**。每块输出结构化元数据：`块标题 | 起止章节 | 核心主题 | 关键事件 | 主角阶段`。详见 [material-decomposition.md 智能分块](references/material-decomposition.md)。
-- **输出长度上限**：Stage 2 chapter-extractor agent 模式按密度公式输出（每章情节点总量由字数动态决定，agent 内部自控）。Stage 3-5 串行分块模式下，单阶段输出不超过 8000 中文字符（用 `wc -m` 统计，超出时优先保留情节点和角色数据，缩写环境描写和心理分析）
+- **输出长度上限**：Stage 2 按密度公式输出（每章情节点总量由字数动态决定）。Stage 3-5 分块模式下，单阶段输出不超过 8000 中文字符（用 `wc -m` 统计，超出时优先保留情节点和角色数据，缩写环境描写和心理分析）
 - 汇总报告（拆文报告.md）总长度上限 8000 中文字符，超出时优先保留结构分析，缩写具体细节
 - 块间状态传递：每块完成后更新 _progress.md
 
